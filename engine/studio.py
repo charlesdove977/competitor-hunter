@@ -212,6 +212,9 @@ def postprocess(run):
                       "followers": next((c.get("subs") for c in result["competitors"] if c["platform"] == "instagram"), None)} if ig else None,
     }
     hunt.write_json(run / "result.json", result)
+    result["report"] = str(hunt.write_report(run, result))
+    hunt.write_json(run / "result.json", result)
+    hunt.emit(run, "rank", "log", "Report written to %s" % result["report"])
 
 
 def cmd_hunt(args):
@@ -273,6 +276,11 @@ def topics_pack(fmt):
         pack["top_competitor_pieces"] = [{k: p.get(k) for k in ("title", "competitor", "platform", "format", "url", "views", "breakout", "er", "score", "jev")} for p in result["pieces"][:10]]
         pack["reddit"] = [{"title": r["title"], "url": r["url"]} for r in result.get("reddit", {}).get("posts", [])[:10]]
     pack["already_on_board"] = [c["title"] for c in board()["cards"]]
+    # the latest two reports from each side of the hub (viral-discover / viral-audit / app runs), excerpted
+    pack["reports"] = []
+    for side in ("competitor-data", "my-social-media"):
+        for r in [x for x in hunt.list_reports() if x["source"] == side][:2]:
+            pack["reports"].append({"name": r["rel"], "excerpt": (hunt.REPORTS / r["rel"]).read_text(encoding="utf-8")[:3500]})
     return pack
 
 

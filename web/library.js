@@ -226,6 +226,38 @@ function analysisPanel(p) {
 
 function inFolder(p) { return lib.folder === 'all' || (lib.folder === 'none' ? !p.folder : p.folder === lib.folder); }
 
+// ---------------------------------------------------------------------------
+// Reports hub: list, filter by source, read in a drawer
+// ---------------------------------------------------------------------------
+const rep = { items: [], source: 'all', hub: '' };
+window.loadReports = async function loadReports() {
+  try { const d = await getJSON('/api/reports'); rep.items = d.reports; rep.hub = d.hub; renderReports(); }
+  catch (err) { $('reports-note').textContent = err.message; }
+}
+function renderReports() {
+  const sources = [...new Set(rep.items.map((r) => r.source))];
+  fill($('reports-filters'), [['all', `All ${rep.items.length}`], ...sources.map((s) => [s, `${s} ${rep.items.filter((r) => r.source === s).length}`])]
+    .map(([k, label]) => h('button', { class: 'chip-btn', type: 'button', 'aria-pressed': String(rep.source === k), text: label, onclick: () => { rep.source = k; renderReports(); } })));
+  const list = rep.items.filter((r) => rep.source === 'all' || r.source === rep.source).slice(0, 60);
+  $('reports-note').textContent = `${rep.items.length} reports in ${rep.hub}. App hunts land in competitor-data/app and my-social-media/app; terminal runs of /viral-discover and /viral-audit show up here too.`;
+  fill($('report-list'), list.length ? list.map((r) => h('li', {},
+    h('button', { class: 'report-row', type: 'button', onclick: () => openReport(r) },
+      h('span', { class: 'chip', text: r.source }), h('b', { text: r.name }), h('span', { class: 'help', text: `${r.rel.split('/').slice(1, -1).join(' / ')} · ${r.date} · ${Math.round(r.size / 1024)} KB` }))))
+    : h('li', { class: 'help', text: 'No reports yet. Run a hunt or /viral-discover.' }));
+}
+function openReport(r) {
+  fetch(`/reports/${r.rel.split('/').map(encodeURIComponent).join('/')}`).then((x) => x.ok ? x.text() : Promise.reject(new Error('Could not read the report')))
+    .then((text) => {
+      const drawer = $('report-drawer');
+      fill(drawer, h('div', { class: 'modal-card asset' }, h('div', { class: 'modal-head' }, h('h3', { class: 'tagline', text: r.name }),
+        h('button', { class: 'ghost tiny', type: 'button', text: 'Close', onclick: () => { drawer.hidden = true; } })),
+        h('div', { class: 'asset-body breakdown' }, h('p', { class: 'help', text: r.rel }), ...mdNodes(text))));
+      drawer.hidden = false;
+      drawer.onclick = (e) => { if (e.target === drawer) drawer.hidden = true; };
+    }).catch((err) => { $('reports-note').textContent = err.message; });
+}
+loadReports();
+
 function renderLibrary() {
   renderFolders();
   const all = [...lib.data.posts].sort((a, b) => b.saved_at.localeCompare(a.saved_at)).filter(inFolder);

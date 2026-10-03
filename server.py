@@ -22,6 +22,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.parse
 import urllib.request
 import uuid
 import webbrowser
@@ -55,7 +56,7 @@ WINDOW_DAYS = 80
 PLATFORMS = ("youtube", "instagram")
 CONDUCTOR_MODEL = "fable"
 CONDUCTOR_TIMEOUT_S = 30 * 60
-MIME = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
+MIME = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".md": "text/markdown; charset=utf-8",
         ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".jpg": "image/jpeg"}
 
 state = {"running": False, "run_id": None, "proc": None}
@@ -268,7 +269,7 @@ def library_payload():
 # Ask AI: a headless Claude Code chat over a context pack of posts. First turn carries the pack,
 # later turns resume the same Claude session, so the pack is never resent.
 # ----------------------------------------------------------------------------
-def context_pack(piece_ids, include_top, include_reddit, card_ids=()):
+def context_pack(piece_ids, include_top, include_reddit, card_ids=(), include_reports=False):
     saved = {p["id"]: p for p in library.load()["posts"]}
     latest = latest_result()
     result = hunt.read_json(latest) if latest else None
@@ -305,7 +306,8 @@ def context_pack(piece_ids, include_top, include_reddit, card_ids=()):
             if script.exists():
                 entry["script"] = script.read_text(encoding="utf-8")[:6000]
             cards.append(entry)
-    return {"pieces": pack, "reddit": [{"sub": r["sub"], "title": r["title"], "icp_fit": (r.get("jev") or {}).get("icp_fit")} for r in reddit], "board_cards": cards}
+    reports = [{"name": r["rel"], "excerpt": (hunt.REPORTS / r["rel"]).read_text(encoding="utf-8")[:6000]} for r in hunt.list_reports()[:3]] if include_reports else []
+    return {"pieces": pack, "reddit": [{"sub": r["sub"], "title": r["title"], "icp_fit": (r.get("jev") or {}).get("icp_fit")} for r in reddit], "board_cards": cards, "reports": reports}
 
 
 def chat_path(chat_id):
@@ -314,7 +316,7 @@ def chat_path(chat_id):
     return CHATS / (chat_id + ".json")
 
 
-def ask(chat_id, message, piece_ids, include_top, include_reddit, token=None, card_ids=()):
+def ask(chat_id, message, piece_ids, include_top, include_reddit, token=None, card_ids=(), include_reports=False):
     claude = shutil.which("claude")
     if not claude:
         raise ValueError("Claude Code is not on PATH.")
@@ -326,10 +328,10 @@ def ask(chat_id, message, piece_ids, include_top, include_reddit, token=None, ca
         command += ["--resume", chat["session_id"]]
         prompt = message
     else:
-        pack = context_pack(piece_ids, include_top, include_reddit, card_ids)
-        if not pack["pieces"] and not pack["reddit"] and not pack["board_cards"]:
+        pack = context_pack(piece_ids, include_top, include_reddit, card_ids, include_reports)
+        if not pack["pieces"] and not pack["reddit"] and not pack["board_cards"] and not pack["reports"]:
             raise ValueError("Pick at least one post, or include the top pieces from the last hunt.")
-        prompt = ASK_PROMPT.read_text(encoding="utf-8").replace("{CREATOR}", hunt.creator_profile()) + json.dumps(pack, ensure_ascii=False) + "\n\nCHARLES: " + message
+        prompt = ASK_PROMPT.read_text(encoding="utf-8").replace("{CREATOR}", hunt.creator_profile()) + json.dumps(pack, ensure_ascii=False) + "\n\nCREATOR: " + message
         chat = {"id": uuid.uuid4().hex[:10], "created": datetime.now().isoformat(timespec="seconds"), "title": message.strip()[:70],
                 "pieces": [e["title"] for e in pack["pieces"]] + [c["title"] for c in pack["board_cards"]], "include_top": bool(include_top), "include_reddit": bool(include_reddit),
                 "model": hunt.settings()["model"], "messages": []}
@@ -524,6 +526,13 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_file(WEB / url.path[1:])
         if url.path == "/studio":
             return self.send_file(WEB / "studio.html")
+        if url.path == "/api/reports":
+            return self.send_json({"reports": hunt.list_reports(), "hub": str(hunt.REPORTS)})
+        if url.path.startswith("/reports/"):
+            target = (hunt.REPORTS / urllib.parse.unquote(url.path[len("/reports/"):])).resolve()
+            if target.suffix not in (".md", ".json") or hunt.REPORTS.resolve() not in target.parents:
+                return self.send_json({"error": "not found"}, 404)
+            return self.send_file(target)
         if url.path == "/api/studio":
             return self.send_json(studio_payload())
         if url.path == "/api/studio/topic":
@@ -692,7 +701,7 @@ class Handler(BaseHTTPRequestHandler):
                 token = str(body.get("token") or "")[:40]
                 return self.send_json(ask(body.get("chat_id"), message[:4000], [str(x) for x in (body.get("pieces") or [])][:40],
                                           bool(body.get("include_top")), bool(body.get("include_reddit")), token or None,
-                                          [str(x) for x in (body.get("cards") or [])][:10]))
+                                          [str(x) for x in (body.get("cards") or [])][:10], bool(body.get("include_reports"))))
             except ValueError as e:
                 return self.send_json({"error": str(e)}, 400)
             except Exception as e:

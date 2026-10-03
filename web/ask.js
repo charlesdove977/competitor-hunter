@@ -19,7 +19,7 @@ function renderAskSide() {
   fill($('ask-chats'), ask.chats.length ? ask.chats.map((c) => h('li', {},
     h('button', { class: 'chat-link' + (ask.chat && ask.chat.id === c.id ? ' on' : ''), type: 'button', text: `${c.title} (${c.turns})`,
       onclick: () => openChat(c.id) }))) : h('li', { class: 'help', text: 'No chats yet.' }));
-  $('ask-top').disabled = $('ask-reddit').disabled = Boolean(ask.chat);
+  $('ask-top').disabled = $('ask-reddit').disabled = $('ask-reports').disabled = Boolean(ask.chat);
 }
 
 function renderThread() {
@@ -91,7 +91,7 @@ $('ask-form').addEventListener('submit', async (e) => {
   try {
     ask.chat = await getJSON('/api/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
       chat_id: ask.chat ? ask.chat.id : null, message, pieces: [...ask.picked], token: ask.token, cards: [...ask.cards],
-      include_top: $('ask-top').checked, include_reddit: $('ask-reddit').checked }) });
+      include_top: $('ask-top').checked, include_reddit: $('ask-reddit').checked, include_reports: $('ask-reports').checked }) });
     input.value = '';
     askNote('');
     renderThread();

@@ -463,3 +463,10 @@ td small { display: block; margin-top: 3px; font-size: 12px; color: var(--muted-
 .ask-cards { display: grid; gap: 4px; }
 @media (max-width: 1068px) { .kanban { grid-template-columns: repeat(5, 240px); } }
 @media (max-width: 734px) { .board-add { grid-template-columns: 1fr; } }
+
+.report-list { display: grid; gap: 4px; margin-top: 16px; }
+.report-row { cursor: pointer; width: 100%; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: baseline; text-align: left; padding: 10px 12px; border: 0; border-radius: var(--radius-md); background: none; color: inherit; }
+.report-row:hover { background: var(--parchment); }
+.report-row b { font-size: 15px; font-weight: 600; letter-spacing: -0.224px; }
+.report-row .help { grid-column: 2; }
+.modal-card.asset .breakdown table { font-size: 13px; }

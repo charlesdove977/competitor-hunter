@@ -659,6 +659,7 @@ function setRunning(running) {
 async function finish(ok, message) {
   setRunning(false);
   if (app.source) { app.source.close(); app.source = null; }
+  if (window.loadReports) window.loadReports();
   if (!ok) {
     $('notice').textContent = message;
     $('read-status').textContent = 'Stopped';

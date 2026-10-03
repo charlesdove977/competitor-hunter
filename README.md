@@ -102,3 +102,12 @@ Jev about $0.10 (1,800 calls). Apify Instagram about $0.0023 per post returned. 
 ## Credits
 
 Built by Charles J Dove (Charlie Automates). Jev is TypeSafe's decision model, served through OpenRouter; see [claude-x-jev](https://github.com/charlesdove977/claude-x-jev). MIT licensed.
+
+## Reports hub
+
+Every hunt ends by writing a markdown report, so the app and the terminal keep one shared record:
+
+- competitor hunt → `<reports>/competitor-data/app/<date>-<run>/audit-<date>.md` + `topic-ideas-<date>.md` + `result.json`
+- own-content analysis (My Studio) → `<reports>/my-social-media/app/<date>-<run>/audit-<date>.md` + `result.json`
+
+`<reports>` defaults to `reports/` inside the app and is overridable with the `reports` key in `local.json`, so you can point it at a folder other tools already write to. The home page lists every `.md` in that folder newest first (any subfolder, any writer), opens each one in a drawer, and Ask AI can pull the latest three into a chat with the "Latest 3 reports" option. My Studio's topic generator reads the two newest reports from each side too.

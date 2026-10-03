@@ -17,6 +17,7 @@
     <li><a href="#results">Results</a></li>
     <li><a href="#saved-window" id="nav-saved">Saved</a></li>
     <li><a href="#ask">Ask AI</a></li>
+    <li><a href="#reports">Reports</a></li>
     <li><a href="/studio">My Studio</a></li>
   </ul>
   <div class="nav-actions">
@@ -187,6 +188,15 @@
     </section>
   </section>
 
+  <section class="tile tile-light" id="reports">
+    <div class="wrap">
+      <h2 class="display">Reports</h2>
+      <p class="lead" id="reports-note">Everything in your reports hub, newest first: app hunts, your own analyses, and anything /viral-discover or /viral-audit wrote from the terminal.</p>
+      <div class="filters" id="reports-filters"></div>
+      <ul class="report-list" id="report-list"></ul>
+    </div>
+  </section>
+
   <section class="tile tile-light empty" id="empty" hidden>
     <div class="wrap narrow center">
       <h2 class="display">No hunt yet</h2>
@@ -203,6 +213,7 @@
           <h3 class="tagline">In this chat</h3>
           <label class="check"><input type="checkbox" id="ask-top" checked><span>Top 12 posts from the last hunt</span></label>
           <label class="check"><input type="checkbox" id="ask-reddit"><span>This week's Reddit ideas</span></label>
+          <label class="check"><input type="checkbox" id="ask-reports"><span>Latest 3 reports from the hub</span></label>
           <ul class="ask-cards" id="ask-cards"></ul>
           <h3 class="tagline">Saved posts</h3>
           <ul class="ask-saved" id="ask-saved"></ul>
@@ -228,6 +239,7 @@
 </footer>
 
 <div class="tip" id="tip" role="tooltip" hidden></div>
+<div class="modal" id="report-drawer" hidden></div>
 <script src="/app.js"></script>
 <script src="/library.js"></script>
 <script src="/ask.js"></script>

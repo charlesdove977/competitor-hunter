@@ -104,6 +104,65 @@ def scrape_reddit(run, subs):
 IG_NOT_PROFILES = {"p", "reel", "reels", "explore", "stories", "tv", "accounts"}
 ENV_FILE = _path("env", APP / ".env")
 JEV_PY = _path("jev_py", Path.home() / ".claude" / "skills" / "claude-x-jev" / "scripts" / "jev.py")
+REPORTS = _path("reports", APP / "reports")   # the hub every hunt writes to and the app reads from (viral-discover / viral-audit write here too)
+
+
+def md_link(p):
+    return "[%s](%s)" % (str(p.get("title") or "(no caption)").replace("]", ")").replace("[", "(")[:90], p.get("url") or "")
+
+
+def write_report(run, result):
+    """Markdown report in the shared hub, same family as /viral-discover and /viral-audit output."""
+    own = bool(result.get("mine"))
+    day = datetime.now().strftime("%Y-%m-%d")
+    folder = REPORTS / ("my-social-media" if own else "competitor-data") / "app" / ("%s-%s" % (day, run.name))
+    folder.mkdir(parents=True, exist_ok=True)
+    t = result["totals"]
+    lines = ["# %s audit, %s" % ("My content" if own else "Competitor hunt", day), "",
+             "Run `%s`, window %d days, platforms %s. %d pieces, %d organic, %d paid placements stripped. Jev: %d decisions, $%.3f."
+             % (run.name, result.get("window_days", 0), ", ".join(result.get("platforms", [])), t["pieces"], t["organic"], t["paid"], t["jev_calls"], t["jev_cost"]), ""]
+    if own:
+        m = result["mine"]
+        if m.get("youtube"):
+            y = m["youtube"]
+            lines += ["## YouTube", "", "%d videos, %s views (%s from ads), %s subscribers gained, %s watch hours." % (y["videos"], f"{y['views']:,}", f"{y.get('ad_views', 0):,}", f"{y['subs_gained']:,}", f"{round(y['minutes'] / 60):,}"), ""]
+        if m.get("instagram"):
+            g = m["instagram"]
+            lines += ["## Instagram", "", "%d posts, %s views, %s reach, %s saves, %s shares." % (g["posts"], f"{g['views']:,}", f"{g['reach']:,}", f"{g['saves']:,}", f"{g['shares']:,}"), ""]
+    else:
+        lines += ["## The field, least to most views", "", "| Competitor | Platform | Pieces | Views | Median | ER |", "|---|---|---|---|---|---|"]
+        for c in sorted(result["competitors"], key=lambda c: c["total_views"]):
+            lines.append("| %s | %s | %d | %s | %s | %s |" % (c["name"], c["platform"], c["pieces"], f"{c['total_views']:,}", f"{c['median_views']:,}", "n/a" if c["er"] is None else "%.2f%%" % c["er"]))
+        lines.append("")
+    lines += ["## Top %s" % ("converters" if own else "pieces"), ""]
+    for p in result["pieces"][:25]:
+        j = p.get("jev") or {}
+        extra = (" · %s %s" % (p.get("conversion"), p.get("conversion_label"))) if own and p.get("conversion") is not None else ""
+        lines.append("%d. **%.1f** %s by %s (%s %s): %s views, breakout %s, ER %s%s. Jev: %s, hook %s, proof %s/3, replicable %s%%."
+                     % (p["rank"], p["score"], md_link(p), p["competitor"], p["platform"], p["format"], "n/a" if p.get("views") is None else f"{p['views']:,}",
+                        "n/a" if p.get("breakout") is None else "%.1fx" % p["breakout"], "n/a" if p.get("er") is None else "%.2f%%" % p["er"], extra,
+                        j.get("topic_lane"), j.get("hook_type"), round(j.get("proof") or 0), round((j.get("replicable") or 0) * 100)))
+    if result.get("paid"):
+        lines += ["", "## Paid placements left out", ""] + ["- %s by %s: %s views, %s" % (md_link(p), p["competitor"], "n/a" if p.get("views") is None else f"{p['views']:,}", p["reason"]) for p in result["paid"][:10]]
+    (folder / ("audit-%s.md" % day)).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    if not own:
+        ideas = ["# Topic ideas, %s" % day, "", "Seeds from the top pieces of run `%s` and this week's Reddit." % run.name, "", "## From the field", ""]
+        ideas += ["- %s (%s, %s): %s lane, %s hook, breakout %s" % (md_link(p), p["competitor"], p["format"], (p.get("jev") or {}).get("topic_lane"), (p.get("jev") or {}).get("hook_type"),
+                   "n/a" if p.get("breakout") is None else "%.1fx" % p["breakout"]) for p in result["pieces"][:15]]
+        reddit = (result.get("reddit") or {}).get("posts", [])
+        if reddit:
+            ideas += ["", "## Reddit this week", ""] + ["- [%s](%s) (r/%s)" % (r["title"].replace("[", "(").replace("]", ")"), r["url"], r["sub"]) for r in reddit[:20]]
+        (folder / ("topic-ideas-%s.md" % day)).write_text("\n".join(ideas) + "\n", encoding="utf-8")
+    shutil.copyfile(run / "result.json", folder / "result.json")
+    return folder
+
+
+def list_reports(limit=200):
+    if not REPORTS.exists():
+        return []
+    files = sorted(REPORTS.rglob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)[:limit]
+    return [{"rel": str(p.relative_to(REPORTS)), "source": p.relative_to(REPORTS).parts[0], "name": p.stem,
+             "date": datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d %H:%M"), "size": p.stat().st_size} for p in files]
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
 YT_API = "https://www.googleapis.com/youtube/v3/"
@@ -812,6 +871,10 @@ def cmd_rank(args):
     if (run / "result.json").exists():   # a re-rank keeps the conductor record the server attached
         result["conductor"] = read_json(run / "result.json").get("conductor")
     write_json(run / "result.json", result)
+    if not meta.get("own"):
+        result["report"] = str(write_report(run, result))
+        write_json(run / "result.json", result)
+        emit(run, "rank", "log", "Report written to %s" % result["report"])
     emit(run, "rank", "done", "Ranked %d organic pieces, %d paid placements stripped. Top: %s"
          % (len(organic), len(paid), organic[0]["title"][:80] if organic else "none"), organic=len(organic), paid=len(paid))
 
