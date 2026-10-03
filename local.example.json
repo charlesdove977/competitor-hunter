@@ -1,0 +1,9 @@
+{
+  "_comment": "Optional. Copy to local.json to point the app at files that live elsewhere on your machine. Absolute paths.",
+  "brain": "/path/to/brain.json",
+  "env": "/path/to/.env",
+  "instagram_env": "/path/to/.env",
+  "jev_py": "~/.claude/skills/claude-x-jev/scripts/jev.py",
+  "yt_token": "/path/to/yt-token.json",
+  "voice": "/path/to/voice-fingerprint.md"
+}

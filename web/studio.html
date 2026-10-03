@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Studio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230066cc'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='white' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='2' fill='white'/%3E%3C/svg%3E">
+<script>try { document.documentElement.dataset.theme = localStorage.getItem('ch-theme') || 'light'; } catch (e) {}</script>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<nav class="global-nav" aria-label="Main">
+  <a class="brand" href="/">Competitor Hunter</a>
+  <ul class="nav-links">
+    <li><a href="/">Home</a></li>
+    <li><a href="#analytics">My Analytics</a></li>
+    <li><a href="#posts">My Posts</a></li>
+    <li><a href="#topics">Topics</a></li>
+    <li><a href="#board">Board</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a class="nav-btn on" href="/studio">My Studio</a>
+    <a class="nav-btn" href="/#ask">Ask AI</a>
+    <button class="nav-btn" id="theme-btn" type="button" aria-label="Switch light or dark mode">Dark</button>
+    <a class="nav-btn" href="/#settings">Settings</a>
+  </div>
+</nav>
+
+<main>
+  <section class="tile tile-light" id="analytics">
+    <div class="wrap">
+      <h1 class="hero-display">My Studio</h1>
+      <p class="lead">Your channels, your numbers, and the ideas that come out of them.</p>
+      <ul class="health" id="health"></ul>
+      <ul class="kpis" id="kpis"></ul>
+      <div class="actions">
+        <fieldset class="platforms">
+          <legend>Pull from</legend>
+          <label class="toggle"><input type="checkbox" name="platform" value="youtube" checked><span>YouTube</span></label>
+          <label class="toggle"><input type="checkbox" name="platform" value="instagram" checked><span>Instagram</span></label>
+        </fieldset>
+      </div>
+      <div class="actions">
+        <button class="btn-primary big" id="run-mine" type="button"><span class="run-label">Analyze my content</span></button>
+        <button class="btn-secondary" id="abort-mine" type="button" hidden>Abort</button>
+        <span class="elapsed job-line" id="mine-status"></span>
+      </div>
+      <p class="help">Same engine as the competitor hunt, pointed at you. Jev judges every post; the score blends demand (breakout, engagement, reach) with conversion: subscribers gained per 10K views on YouTube, saves and shares per 100 views on Instagram.</p>
+      <p class="notice" id="mine-notice" role="status"></p>
+    </div>
+  </section>
+
+  <section class="tile tile-parchment" id="posts">
+    <div class="wrap">
+      <h2 class="display">What worked for you</h2>
+      <p class="lead" id="posts-note">Run the analysis to see your posts ranked on conversion and demand.</p>
+      <div class="filters" id="posts-filters"></div>
+      <div class="targets" id="posts-grid"></div>
+      <div class="more"><button class="btn-secondary" id="posts-more" type="button" hidden>Show 12 more</button></div>
+    </div>
+  </section>
+
+  <section class="tile tile-light" id="topics">
+    <div class="wrap">
+      <h2 class="display">Topics</h2>
+      <p class="lead">AI builds your top 10 from your own results, the competitor posts you saved, the last hunt and Reddit. Add the ones you like to the board.</p>
+      <div class="actions">
+        <button class="btn-primary" id="topics-longform" type="button">Top 10 longform ideas</button>
+        <button class="btn-primary" id="topics-short" type="button">Top 10 short ideas</button>
+        <span class="elapsed job-line" id="topics-status"></span>
+      </div>
+      <p class="notice" id="topics-notice" role="status"></p>
+      <div class="filters" id="topics-reports"></div>
+      <div class="ideas" id="ideas"></div>
+    </div>
+  </section>
+
+  <section class="tile tile-parchment" id="board">
+    <div class="wrap">
+      <h2 class="display">Board</h2>
+      <p class="lead">Drag cards between columns. Tick them off, add notes, link inspiration. Longform cards can write their script and thumbnail concepts.</p>
+      <form class="board-add" id="board-add">
+        <input type="text" id="board-title" placeholder="Add an idea of your own" aria-label="New idea title" autocomplete="off">
+        <select id="board-format" aria-label="Format"><option value="longform">Longform</option><option value="short">Short</option></select>
+        <button class="btn-primary" type="submit">Add</button>
+      </form>
+      <p class="notice" id="board-notice" role="status"></p>
+      <div class="kanban" id="kanban"></div>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="drawer" hidden></div>
+<script src="/studio.js"></script>
+</body>
+</html>

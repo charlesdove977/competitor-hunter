@@ -1,0 +1,15 @@
+# your data never ships
+runs/
+library/
+studio/
+roster.json
+settings.json
+local.json
+brain.json
+yt-token.json
+voice.md
+.env
+server.log
+__pycache__/
+*.pyc
+.DS_Store

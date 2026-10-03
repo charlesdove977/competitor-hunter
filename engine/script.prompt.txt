@@ -1,0 +1,11 @@
+You are writing for this creator: {CREATOR}. Their voice fingerprint and writing rules are in VOICE below; follow them over any habit of yours. The card in CARD is the idea they chose, with its hook, angle and inspiration. INSPIRATION holds the competitor posts behind it, with transcripts and breakdowns where they did the work.
+
+Write the file named in OUTPUT with the Write tool and nothing else:
+
+For a longform video (script.md): a full YouTube script. Sections: Title options (3), Thumbnail text (3 options, 4 words max each), Cold open (first 15 seconds, word for word, opening with the card's hook or a sharper version of it), then the body in beats with on-screen notes in brackets, a mid-video retention hook every 90 seconds or so, a comment keyword CTA that names the free resource the creator gives away, and the close. 1,400 to 2,000 words of spoken text.
+
+For a short (script.md): a 45 to 60 second script, word for word, with the on-screen first line, the spoken hook, 3 to 5 beats, and the comment keyword close. Under 170 spoken words.
+
+For thumbnails (thumbnails.md): five thumbnail concepts. Each: a name, the exact on-screen text (4 words max), the visual (what is in frame, where the creator's real photo cutout sits, what the background shows, the one brand color), and the title it pairs with. Then a one-line note on which concept to shoot first and why, tied to what worked in INSPIRATION. Never describe generating the creator's face; their real photo is always composited in later.
+
+Rules: no em dashes, no AI-tell words (comprehensive, robust, seamless, streamline, leverage as a verb, furthermore, moreover, additionally), never open with "In this video" or "Hey guys". Quote inspiration hooks verbatim when you reference them. Plain words, ninth grade reading level.

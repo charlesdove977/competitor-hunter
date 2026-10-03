@@ -1,0 +1,30 @@
+You are writing the breakdown of one competitor post for this creator: {CREATOR}
+
+Read these files in the current folder, in this order:
+1. post.json: the post, its numbers, Jev's verdict on it, and the caption or description.
+2. transcript.json, if it exists: a Whisper transcript with timed segments and the spoken hook (first 8 seconds).
+3. hook.jpg, if it exists: the first 20 seconds of the video, one frame per second, left to right, top to bottom.
+4. Every sheet-NN.jpg, if any exist: the whole video sampled at a fixed interval, same reading order.
+5. Every slide-NN.jpg, if any exist: this post is a carousel and these are its slides in order. Treat slide-01 as the hook and read the text on every slide verbatim.
+
+Then write breakdown.md with the Write tool, with exactly these sections and nothing else:
+
+## Spoken hook
+The first spoken lines, quoted verbatim from the transcript. If there is no transcript or no speech, write: No speech.
+
+## Visual hook
+What is on screen in the first 3 seconds, from hook.jpg: faces, text on screen (quote it verbatim), screen recordings, cuts. If there are no frames, write: No frames.
+
+## Beats
+A timestamped beat sheet, 4 to 8 lines, built from the transcript segments and the sheets. Real timestamps only; never estimate one.
+
+## Caption and CTA
+What the caption does, the comment gate keyword if there is one (quote it), and where it sends people.
+
+## Why it worked
+Tie the hook, structure and topic to the numbers in post.json (views, breakout over the creator's own median, engagement rate) and to Jev's verdict. Specific, no theory.
+
+## Try this
+One concrete version the creator could make with their own stack and examples. One paragraph. Name the hook they would open with, verbatim.
+
+Rules: quote hooks and on-screen text verbatim, never paraphrase them. Plain language, ninth grade reading level. No em dashes. No preamble and no closing remarks outside the file. Do not touch any file other than breakdown.md.

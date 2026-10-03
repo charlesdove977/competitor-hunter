@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Competitor Hunter</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230066cc'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='white' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='2' fill='white'/%3E%3C/svg%3E">
+<script>try { document.documentElement.dataset.theme = localStorage.getItem('ch-theme') || 'light'; } catch (e) {}</script>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<nav class="global-nav" aria-label="Main">
+  <a class="brand" href="#top">Competitor Hunter</a>
+  <ul class="nav-links">
+    <li><a href="#top">Hunt</a></li>
+    <li><a href="#results">Results</a></li>
+    <li><a href="#saved-window" id="nav-saved">Saved</a></li>
+    <li><a href="#ask">Ask AI</a></li>
+    <li><a href="/studio">My Studio</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a class="nav-btn" href="/studio">My Studio</a>
+    <button class="nav-btn" id="ask-btn" type="button">Ask AI</button>
+    <button class="nav-btn" id="theme-btn" type="button" aria-label="Switch light or dark mode">Dark</button>
+    <button class="nav-btn" id="settings-btn" type="button" aria-expanded="false" aria-controls="settings">Settings</button>
+  </div>
+</nav>
+
+<section class="tile tile-light settings" id="settings" hidden>
+  <div class="wrap narrow">
+    <h2 class="display">Settings</h2>
+    <p class="lead">Everything you can change lives here.</p>
+    <form class="settings-form" id="settings-form">
+      <div class="field">
+        <label for="model-select">Claude model</label>
+        <select id="model-select"></select>
+        <p class="help">Runs the hunt, writes every breakdown, answers in Ask AI. Takes effect on the next run.</p>
+      </div>
+      <div class="field" id="model-custom-field" hidden>
+        <label for="model-custom">Custom model id</label>
+        <input id="model-custom" type="text" autocomplete="off" spellcheck="false" placeholder="claude-opus-5-5">
+      </div>
+      <div class="field">
+        <label for="theme-select">Look</label>
+        <select id="theme-select"><option value="light">Light</option><option value="dark">Dark</option></select>
+      </div>
+      <div class="field">
+        <label for="subs-input">Reddit communities to watch</label>
+        <input id="subs-input" type="text" autocomplete="off" spellcheck="false" placeholder="ClaudeAI, ClaudeCode, AI_Agents">
+        <p class="help">Top posts of the week from these show up as extra topic ideas after a hunt.</p>
+      </div>
+      <div class="field">
+        <span class="label">Hunt window</span>
+        <p class="static"><span id="window-days">80</span> days back, every time.</p>
+      </div>
+      <button class="btn-primary" type="submit">Save settings</button>
+      <p class="notice" id="settings-notice" role="status"></p>
+      <p class="help" id="settings-meta"></p>
+    </form>
+  </div>
+</section>
+
+<main id="top">
+  <section class="tile tile-light hero">
+    <div class="wrap">
+      <ul class="health" id="health" aria-label="System readiness"></ul>
+      <h1 class="hero-display">Find what's winning.<br>Make yours next.</h1>
+      <p class="lead">One button. It collects every post your competitors made in the last 80 days, has Jev judge each one, and shows you the ones most likely to work for you.</p>
+
+      <fieldset class="platforms">
+        <legend>Where to look</legend>
+        <label class="toggle"><input type="checkbox" name="platform" value="youtube" checked><span>YouTube <b id="count-youtube"></b></span></label>
+        <label class="toggle"><input type="checkbox" name="platform" value="instagram" checked><span>Instagram <b id="count-instagram"></b></span></label>
+      </fieldset>
+
+      <div class="actions">
+        <button class="btn-primary big" id="run" type="button"><span class="run-label">Find winning content</span></button>
+        <button class="btn-secondary" id="stop" type="button" hidden>Stop</button>
+        <span class="elapsed" id="elapsed" aria-live="off"></span>
+      </div>
+      <p class="notice" id="notice" role="status"></p>
+
+      <ol class="phases" id="phases" aria-label="Progress">
+        <li data-phase="scrape"><span class="phase-name">1. Collect</span><span class="phase-note">Every post, 80 days</span></li>
+        <li data-phase="pilot"><span class="phase-name">2. Tune</span><span class="phase-note">Claude checks Jev's questions</span></li>
+        <li data-phase="judge"><span class="phase-name">3. Judge</span><span class="phase-note">Jev rules on every post</span></li>
+        <li data-phase="rank"><span class="phase-name">4. Rank</span><span class="phase-note">Best ones first</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="tile tile-dark map-tile">
+    <div class="wrap">
+      <h2 class="display">The field</h2>
+      <p class="lead">Every competitor on one map. Up means more views. Right means bigger spikes. Top right is who to watch.</p>
+      <div class="scope">
+        <canvas id="radar" aria-label="Map of competitors. Further right means bigger breakouts, higher means more views, a larger mark means a higher engagement rate. Circles are YouTube, diamonds are Instagram."></canvas>
+        <dl class="readout">
+          <div><dt>Competitors</dt><dd id="read-targets">0</dd></div>
+          <div><dt>Collected</dt><dd id="read-acquired">0</dd></div>
+          <div><dt>Posts</dt><dd id="read-pieces">0</dd></div>
+          <div><dt>Status</dt><dd id="read-status">Idle</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="tile tile-light roster-tile">
+    <div class="wrap">
+      <h2 class="display">Competitors</h2>
+      <p class="lead" id="roster-meta"></p>
+      <form class="roster-form" id="roster-form">
+        <input id="roster-input" type="text" autocomplete="off" spellcheck="false" placeholder="Paste a YouTube or Instagram link, or type an @handle" aria-label="Add a competitor">
+        <fieldset class="seg">
+          <legend>A bare @handle is on</legend>
+          <label><input type="radio" name="roster-platform" value="youtube" checked><span>YouTube</span></label>
+          <label><input type="radio" name="roster-platform" value="instagram"><span>Instagram</span></label>
+        </fieldset>
+        <button class="btn-primary" type="submit">Add</button>
+      </form>
+      <p class="notice" id="roster-notice" role="status"></p>
+      <ul class="roster-list" id="roster-list"></ul>
+    </div>
+  </section>
+
+  <section class="tile tile-parchment log-tile" id="log-window" hidden>
+    <div class="wrap">
+      <h2 class="display">What's happening</h2>
+      <p class="help" id="log-meta"></p>
+      <ol class="log-lines" id="log" aria-live="polite"></ol>
+    </div>
+  </section>
+
+  <section id="results" hidden>
+    <section class="tile tile-parchment">
+      <div class="wrap">
+        <h2 class="display">Last hunt</h2>
+        <ul class="kpis" id="kpis"></ul>
+      </div>
+    </section>
+
+    <section class="tile tile-light">
+      <div class="wrap">
+        <h2 class="display">Who's winning</h2>
+        <p class="lead" id="ladder-note"></p>
+        <div class="ladders">
+          <div class="card ladder" id="ladder-views"></div>
+          <div class="card ladder" id="ladder-er"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tile tile-parchment">
+      <div class="wrap">
+        <h2 class="display">Best posts to learn from</h2>
+        <p class="lead">Ranked by how well they did for their creator and how well they fit your audience. Paid placements are left out.</p>
+        <div class="filters" id="filters"></div>
+        <div class="targets" id="targets"></div>
+        <div class="more"><button class="btn-secondary" id="more" type="button">Show 12 more</button></div>
+      </div>
+    </section>
+
+    <section class="tile tile-light" id="reddit-tile">
+      <div class="wrap">
+        <h2 class="display">Reddit ideas</h2>
+        <p class="lead" id="reddit-note">Top posts of the week from your communities. Not on the map, just extra topics people are already talking about.</p>
+        <ol class="reddit-list" id="reddit-list"></ol>
+      </div>
+    </section>
+
+    <section class="tile tile-parchment saved" id="saved-window">
+      <div class="wrap">
+        <h2 class="display">Saved</h2>
+        <p class="lead">Press Save on any post above. Then transcribe it, watch it, or ask AI about it. Carousels pull their slides on save.</p>
+        <div class="folder-bar" id="folder-bar"></div>
+        <p class="notice" id="saved-notice" role="status"></p>
+        <div class="saved-grid" id="saved-grid"></div>
+      </div>
+    </section>
+
+    <section class="tile tile-light">
+      <div class="wrap">
+        <details class="card" id="jev-panel"></details>
+        <details class="card" id="paid-panel"></details>
+      </div>
+    </section>
+  </section>
+
+  <section class="tile tile-light empty" id="empty" hidden>
+    <div class="wrap narrow center">
+      <h2 class="display">No hunt yet</h2>
+      <p class="lead">Press <b>Find winning content</b>. Everything shows up here when it's done.</p>
+    </div>
+  </section>
+
+  <section class="tile tile-dark ask" id="ask" hidden>
+    <div class="wrap">
+      <h2 class="display">Ask AI</h2>
+      <p class="lead">Pick what to talk about, then ask. Topics, hooks, what your next post should look like.</p>
+      <div class="ask-grid">
+        <aside class="ask-side">
+          <h3 class="tagline">In this chat</h3>
+          <label class="check"><input type="checkbox" id="ask-top" checked><span>Top 12 posts from the last hunt</span></label>
+          <label class="check"><input type="checkbox" id="ask-reddit"><span>This week's Reddit ideas</span></label>
+          <ul class="ask-cards" id="ask-cards"></ul>
+          <h3 class="tagline">Saved posts</h3>
+          <ul class="ask-saved" id="ask-saved"></ul>
+          <h3 class="tagline">Earlier chats</h3>
+          <ul class="ask-chats" id="ask-chats"></ul>
+          <button class="btn-secondary" id="ask-new" type="button">New chat</button>
+        </aside>
+        <div class="ask-main">
+          <ol class="thread" id="ask-thread" aria-live="polite"></ol>
+          <form class="ask-form" id="ask-form">
+            <textarea id="ask-input" rows="3" placeholder="What should my next piece be about?" aria-label="Your question"></textarea>
+            <span class="ask-buttons"><button class="btn-primary" id="ask-send" type="submit">Ask</button><button class="btn-secondary" id="ask-abort" type="button" hidden>Abort</button></span>
+          </form>
+          <p class="notice" id="ask-notice" role="status"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="tile tile-parchment footer">
+  <div class="wrap"><p class="fine">Competitor Hunter runs on your Mac. Jev judges, Claude writes, nothing leaves except the scrape and the model calls.</p></div>
+</footer>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+<script src="/app.js"></script>
+<script src="/library.js"></script>
+<script src="/ask.js"></script>
+</body>
+</html>

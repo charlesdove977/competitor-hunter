@@ -1,0 +1,83 @@
+{
+  "name": "competitor-hunt",
+  "version": 1,
+  "description": "Competitor Hunter: judge one competitor piece (YouTube video or Instagram post) for the creator in creator_profile. Lane, audience fit, hook, proof, replicable, sponsored, news-pegged.",
+  "model": "typesafe/jev-1.13",
+  "state_fields": ["creator_profile", "platform", "format", "duration_min", "title", "description"],
+  "display_fields": ["title"],
+  "questions": {
+    "topic_lane": {
+      "type": "choice",
+      "exhaustive": true,
+      "instructions": "What is the main subject of the piece, judged from `title` first and `description` second?",
+      "criteria": {
+        "claude_code": "Names Claude, Claude Code, Anthropic, a Claude model, Claude skills, plugins, or MCP servers as the main subject.",
+        "agent_systems": "About building or running AI agents, agent teams, a second brain, or an AI operating system, without Claude being the named main subject.",
+        "business_automation": "About automating business work or earning money with AI services: client work, lead generation, agencies, SaaS, a dollar or revenue outcome.",
+        "other_ai_tools": "About an AI tool or model that is not Claude: ChatGPT, Gemini, n8n, image or video generators, coding tools from other vendors.",
+        "off_niche": "Not about AI or automation: lifestyle, personal vlog, giveaway, motivation with no tool or workflow named."
+      }
+    },
+    "icp_fit": {
+      "type": "score",
+      "instructions": "How directly does the piece (`title`, `description`) serve the audience named in `creator_profile`?",
+      "criteria": [
+        "Off target: the topic gives a business owner or an AI beginner nothing to use.",
+        "Adjacent: an AI topic aimed at developers or hobbyists, with no business use stated.",
+        "On target: shows a tool or workflow a business owner or beginner could apply, stated in the title or description.",
+        "Bullseye: names a business outcome (time saved, money made, tasks removed) and the tool or workflow that produces it."
+      ]
+    },
+    "hook_type": {
+      "type": "choice",
+      "instructions": "Which hook pattern opens `title`? When two patterns appear, pick the one that appears first in `title`.",
+      "criteria": {
+        "contradiction": "Denies a common belief or tells the viewer to stop doing something: stop, don't, is dead, is lying, wrong, nobody tells you.",
+        "number_specific": "Leads with a specific number, count, or dollar amount as the draw: 84 skills, $1M, 10x, 3 steps, 7 tools.",
+        "newsjack": "Leads with a product, model, or feature presented as new: just dropped, just released, new, a version number.",
+        "outcome_build": "Leads with something the creator built or a result they got: I built, how I, my system, I replaced.",
+        "how_to": "Leads with an instruction or a tutorial promise: how to, full guide, course, tutorial, setup, step by step.",
+        "other": "None of the patterns above."
+      }
+    },
+    "proof": {
+      "type": "score",
+      "instructions": "How much visible proof does the piece promise in `title` and `description`?",
+      "criteria": [
+        "Opinion or news only: nothing is built or shown.",
+        "Shows a tool or a setup on screen.",
+        "Builds something from start to finish on screen.",
+        "Shows a measured result: revenue, hours saved, a count, or a before and after."
+      ]
+    },
+    "replicable": {
+      "type": "noul",
+      "instructions": "Could the creator in `creator_profile` publish their own version of this piece using the tools named in `title` or `description`, without needing the original creator's personal story, private data, or a sponsor's product?"
+    },
+    "sponsored": {
+      "type": "noul",
+      "instructions": "Is the whole piece a paid promotion for one named company's product (a dedicated sponsored video or brand deal), as stated in `title` or `description`, rather than the creator's own topic with at most a short sponsor mention?"
+    },
+    "newsjack": {
+      "type": "noul",
+      "instructions": "Is the piece pegged to a product release or announcement that was new when it was posted (a new model, a new feature, a version number, 'just dropped'), judged from `title` and `description`?"
+    }
+  },
+  "thresholds": {
+    "topic_lane": 0.6,
+    "icp_fit": 0.5,
+    "hook_type": 0,
+    "proof": 0,
+    "replicable": { "low": 0.5, "high": 0.5 },
+    "sponsored": { "low": 0.5, "high": 0.5 },
+    "newsjack": { "low": 0.5, "high": 0.5 }
+  },
+  "rules": [
+    {
+      "name": "off_niche_has_no_fit",
+      "when": { "topic_lane": "off_niche" },
+      "set": { "icp_fit": 0 }
+    }
+  ],
+  "tuning_notes": []
+}

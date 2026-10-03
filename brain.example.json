@@ -1,0 +1,23 @@
+{
+  "identity": {
+    "name": "Your Name",
+    "brand": "@yourhandle",
+    "niche": "AI automation for small businesses",
+    "tone": ["direct", "practical"],
+    "differentiator": "What you do that the field does not."
+  },
+  "icp": {
+    "segments": ["agency owners", "business owners", "AI beginners"],
+    "pain_points": ["drowning in manual work", "too many AI tools, no idea where to start"],
+    "goals": ["scale without hiring", "automate the day to day"]
+  },
+  "pillars": [
+    { "name": "Claude Code", "description": "Hands-on builds with Claude Code, skills and MCP servers", "keywords": ["Claude Code", "MCP", "plugins"] },
+    { "name": "AI agents", "description": "Agents that run business operations", "keywords": ["AI agents", "automation"] }
+  ],
+  "competitors": [
+    { "name": "Example Creator", "platform": "YouTube", "handle": "@examplecreator" },
+    { "name": "Another Creator", "platform": "Instagram", "handle": "@anothercreator" }
+  ],
+  "learning_weights": { "icp_relevance": 1.0, "timeliness": 1.0, "content_gap": 1.0, "proof_potential": 1.0 }
+}
