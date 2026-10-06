@@ -8,10 +8,52 @@ const PHASES = ['scrape', 'pilot', 'judge', 'rank'];
 const STAGE_TAG = { fable: 'Claude', scrape: 'Collect', pilot: 'Tune', judge: 'Jev', rank: 'Rank', system: 'System' };
 const STATUS = { scrape: 'Collecting', pilot: 'Tuning Jev', judge: 'Judging', rank: 'Ranking' };
 
+// Result filters. Everything in DEFAULT_FILTER persists in this browser; competitor and shown are per-view.
+const FILTER_KEY = 'competitor-hunter.filter';
+const DEFAULT_FILTER = { format: 'all', days: 0, from: '', to: '', breakout: 0, lane: 'all', hideOff: true, hook: 'all', minScore: 0, minViews: 0, news: false, sure: false, sort: 'score' };
+function loadFilter() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(FILTER_KEY) || '{}') || {}; } catch (err) { saved = {}; }
+  const f = { ...DEFAULT_FILTER };
+  for (const k of Object.keys(DEFAULT_FILTER)) if (k in saved && typeof saved[k] === typeof DEFAULT_FILTER[k]) f[k] = saved[k];
+  return { ...f, competitor: null, shown: PAGE };
+}
+function saveFilter() {
+  const out = {};
+  for (const k of Object.keys(DEFAULT_FILTER)) out[k] = app.filter[k];
+  try { localStorage.setItem(FILTER_KEY, JSON.stringify(out)); } catch (err) { /* private window: filters just do not persist */ }
+}
+function passes(p, f) {
+  const j = p.jev || {};
+  if (f.format !== 'all' && p.format !== f.format) return false;
+  if (f.from || f.to) {                       // a custom range wins over the quick "last N days"
+    const day = (p.published || '').slice(0, 10);
+    if (f.from && day < f.from) return false;
+    if (f.to && day > f.to) return false;
+  } else if (f.days && p.age_days > f.days) return false;
+  if (f.breakout && !(p.breakout >= f.breakout)) return false;
+  if (f.lane !== 'all' ? j.topic_lane !== f.lane : (f.hideOff && j.topic_lane === 'off_niche')) return false;
+  if (f.hook !== 'all' && j.hook_type !== f.hook) return false;
+  if (f.minScore && p.score < f.minScore) return false;
+  if (f.minViews && !(p.views >= f.minViews)) return false;   // carousels have no view count and drop out here
+  if (f.news && !(j.newsjack >= 0.6)) return false;
+  if (f.sure && !j.sure) return false;
+  return true;
+}
+const SORTS = {
+  score: (a, b) => b.score - a.score, breakout: (a, b) => (b.breakout || 0) - (a.breakout || 0),
+  views: (a, b) => (b.views || 0) - (a.views || 0), newest: (a, b) => a.age_days - b.age_days,
+};
+function filteredPieces() {
+  const f = app.filter;
+  if (!app.result) return [];
+  return app.result.pieces.filter((p) => passes(p, f) && (!f.competitor || keyOf(p) === f.competitor)).sort(SORTS[f.sort] || SORTS.score);
+}
+
 const app = {
   roster: [], result: null, running: false, source: null, startedAt: 0, timer: null,
   acquired: 0, pieces: 0,
-  filter: { format: 'all', competitor: null, shown: PAGE },
+  filter: loadFilter(),
   hot: null, settings: { model: 'fable' }, models: {}, ticker: [],
 };
 const modelLabel = (id) => app.models[id] || id;
@@ -83,17 +125,18 @@ function logAxis(values) {
 }
 
 function setBlips(roster, result) {
-  const data = new Map((result ? result.competitors : []).filter((c) => c.pieces > 0).map((c) => [keyOf(c), c]));
-  const breakouts = new Map();
-  for (const p of result ? result.pieces : []) {
-    if (p.breakout == null) continue;
-    if (!breakouts.has(keyOf(p))) breakouts.set(keyOf(p), []);
-    breakouts.get(keyOf(p)).push(p.breakout);
+  // Only pieces that pass the current filters count, so the map and the cards always show the same field.
+  const stats = new Map();
+  for (const p of result ? result.pieces.filter((piece) => passes(piece, app.filter)) : []) {
+    if (!stats.has(keyOf(p))) stats.set(keyOf(p), { pieces: 0, views: 0, breakouts: [] });
+    const s = stats.get(keyOf(p));
+    s.pieces += 1; s.views += p.views || 0;
+    if (p.breakout != null) s.breakouts.push(p.breakout);
   }
-  for (const [key, c] of data) {
-    const best = (breakouts.get(key) || []).sort((x, y) => y - x).slice(0, 3);
-    c.breakout = best.length ? best.reduce((sum, v) => sum + v, 0) / best.length : null;
-  }
+  const data = new Map((result ? result.competitors : []).filter((c) => stats.has(keyOf(c))).map((c) => {
+    const s = stats.get(keyOf(c)), best = s.breakouts.sort((x, y) => y - x).slice(0, 3);
+    return [keyOf(c), { ...c, pieces: s.pieces, total_views: s.views, breakout: best.length ? best.reduce((sum, v) => sum + v, 0) / best.length : null }];
+  }));
   const plotted = [...data.values()].filter((c) => c.breakout > 0 && c.total_views > 0);
   radar.axes = null;
   if (plotted.length) {
@@ -385,7 +428,7 @@ radar.canvas.addEventListener('click', (e) => { const blip = blipAt(e); if (blip
 function competitorTip(c) {
   const rows = c.total_views == null
     ? [['Platform', c.platform === 'youtube' ? 'YouTube' : 'Instagram'], ['Status', 'Not scouted yet']]
-    : [['Platform', c.platform === 'youtube' ? 'YouTube' : 'Instagram'], ['Pieces', c.pieces], ['Views, 80 days', num(c.total_views)],
+    : [['Platform', c.platform === 'youtube' ? 'YouTube' : 'Instagram'], ['Pieces in filter', c.pieces], ['Views in filter', num(c.total_views)],
        ['Breakout, best 3', c.breakout ? c.breakout.toFixed(1) + 'x' : 'n/a'],
        ['Median views', num(c.median_views)], ['Engagement rate', pct(c.er)],
        ...(c.subs ? [['Subscribers', num(c.subs)]] : []), ['Best hunt score', c.best_score == null ? 'n/a' : c.best_score]];
@@ -515,19 +558,46 @@ function targetCard(p, i) {
 function renderTargets() {
   const r = app.result, f = app.filter;
   if (!r) return;
-  const formats = [['all', 'All'], ['longform', 'YouTube longform'], ['short', 'YouTube Shorts'], ['instagram', 'Instagram']]
-    .filter(([key]) => key === 'all' || r.pieces.some((p) => (key === 'instagram' ? p.platform === 'instagram' : p.format === key)));
-  const list = r.pieces.filter((p) =>
-    (f.format === 'all' || (f.format === 'instagram' ? p.platform === 'instagram' : p.format === f.format))
-    && (!f.competitor || keyOf(p) === f.competitor));
+  const formats = [['all', 'All'], ['longform', 'YouTube longform'], ['short', 'YouTube Shorts'], ['reel', 'Instagram reels'], ['carousel', 'Instagram carousels']]
+    .filter(([key]) => key === 'all' || r.pieces.some((p) => p.format === key));
+  const lanes = [...new Set(r.pieces.map((p) => (p.jev || {}).topic_lane).filter(Boolean))].sort();
+  const hooks = [...new Set(r.pieces.map((p) => (p.jev || {}).hook_type).filter(Boolean))].sort();
+  const days = r.pieces.map((p) => (p.published || '').slice(0, 10)).filter(Boolean).sort();
+  const list = filteredPieces();
+  const active = Object.keys(DEFAULT_FILTER).filter((k) => f[k] !== DEFAULT_FILTER[k]).length;
+  const set = (patch) => { Object.assign(f, patch); f.shown = PAGE; saveFilter(); renderTargets(); setBlips(app.roster, r); };
+  const select = (label, key, options, parse = (v) => v) => h('label', { class: 'fcol' }, h('span', { text: label }),
+    h('select', { onchange: (e) => set({ [key]: parse(e.target.value) }) },
+      options.map(([value, text]) => h('option', { value: String(value), text, selected: String(f[key]) === String(value) }))));
+  const date = (label, key) => h('label', { class: 'fcol' }, h('span', { text: label }),
+    h('input', { type: 'date', value: f[key], min: days[0], max: days[days.length - 1], onchange: (e) => set({ [key]: e.target.value }) }));
+  const check = (label, key) => h('label', { class: 'check small' },
+    h('input', { type: 'checkbox', checked: f[key], onchange: (e) => set({ [key]: e.target.checked }) }), h('span', { text: label }));
   fill($('filters'),
-    formats.map(([key, label]) => h('button', { class: 'chip-btn', type: 'button', 'aria-pressed': String(f.format === key), text: label,
-      onclick: () => { f.format = key; f.shown = PAGE; renderTargets(); } })),
-    f.competitor ? h('button', { class: 'chip-btn clear', type: 'button', text: `${f.competitor.split('|')[1]} only · clear`,
-      onclick: () => selectCompetitor(f.competitor) }) : null);
+    h('div', { class: 'chip-row' },
+      formats.map(([key, label]) => h('button', { class: 'chip-btn', type: 'button', 'aria-pressed': String(f.format === key), text: label,
+        onclick: () => set({ format: key }) })),
+      f.competitor ? h('button', { class: 'chip-btn clear', type: 'button', text: `${f.competitor.split('|')[1]} only · clear`,
+        onclick: () => selectCompetitor(f.competitor) }) : null),
+    h('div', { class: 'filter-bar' },
+      select('Posted', 'days', [[0, `Any time, ${r.window_days} days`], [7, 'Last 7 days'], [14, 'Last 14 days'], [30, 'Last 30 days']], Number),
+      date('From', 'from'), date('To', 'to'),
+      select('Breakout', 'breakout', [[0, 'Any'], [1, '1x or more'], [2, '2x or more'], [5, '5x or more'], [10, '10x or more']], Number),
+      select('Topic', 'lane', [['all', 'All topics'], ...lanes.map((l) => [l, words(l)])]),
+      select('Hook', 'hook', [['all', 'All hooks'], ...hooks.map((k) => [k, words(k)])]),
+      select('Min views', 'minViews', [[0, 'Any'], [1000, '1K or more'], [10000, '10K or more'], [50000, '50K or more'], [100000, '100K or more'], [500000, '500K or more']], Number),
+      select('Sort by', 'sort', [['score', 'Hunt score'], ['breakout', 'Breakout'], ['views', 'Views'], ['newest', 'Newest']]),
+      h('label', { class: 'fcol' }, h('span', { text: `Min hunt score: ${f.minScore}` }),
+        h('input', { type: 'range', min: 0, max: 100, step: 5, value: f.minScore,
+          oninput: (e) => { e.target.previousSibling.textContent = `Min hunt score: ${e.target.value}`; },
+          onchange: (e) => set({ minScore: Number(e.target.value) }) })),
+      h('div', { class: 'fcol toggles' }, check('Hide off-topic', 'hideOff'), check('News-pegged only', 'news'), check('Jev sure only', 'sure'))),
+    h('div', { class: 'filter-foot' },
+      h('span', { class: 'help', text: `${list.length.toLocaleString()} of ${r.pieces.length.toLocaleString()} posts${active ? ` · ${active} filter${active > 1 ? 's' : ''} on` : ''}` }),
+      active ? h('button', { class: 'chip-btn clear', type: 'button', text: 'Reset filters', onclick: () => set({ ...DEFAULT_FILTER }) }) : null));
   $('targets').replaceChildren(...(list.length
     ? list.slice(0, f.shown).map(targetCard)
-    : [h('p', { class: 'section-note', text: 'No ranked pieces match this filter.' })]));
+    : [h('p', { class: 'section-note', text: 'No ranked pieces match these filters. Loosen one or reset.' })]));
   $('more').hidden = list.length <= f.shown;
   if (window.markSaved) window.markSaved();
 }
@@ -564,7 +634,7 @@ function renderPaid(r) {
 
 function render(result) {
   app.result = result;
-  app.filter = { format: 'all', competitor: null, shown: PAGE };
+  app.filter = loadFilter();
   $('empty').hidden = true;
   $('results').hidden = false;
   setBlips(app.roster, result);
