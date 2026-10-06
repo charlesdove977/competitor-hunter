@@ -873,6 +873,9 @@ function renderHealth(state) {
     ['Apify', hl.apify_key, 'APIFY_API_TOKEN is missing from the repo .env. Instagram will be skipped.'],
     [`${state.window_days}-day window`, true, ''],
   ];
+  const tools = [['yt-dlp', hl.ytdlp], ['ffmpeg', hl.ffmpeg], ['openai-whisper', hl.whisper]].filter(([, ok]) => !ok).map(([name]) => name);
+  if (tools.length) chips.push([`Saved tools: install ${tools.join(', ')}`, false,
+    'Transcribe and Watch on saved posts need yt-dlp, ffmpeg and openai-whisper. brew install yt-dlp ffmpeg (or your OS equivalent) and pip install openai-whisper. The hunt itself needs none of them.']);
   $('health').replaceChildren(...chips.map(([label, ok, why]) => h('li', { class: ok ? '' : 'down', title: ok ? 'Ready' : why, text: label })));
   if (hl.jev_credits != null && hl.jev_credits < 0.15) $('notice').textContent = `Jev credit is low ($${hl.jev_credits.toFixed(2)} on OpenRouter). A full hunt costs about $0.10.`;
 }

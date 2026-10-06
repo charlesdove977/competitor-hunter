@@ -44,6 +44,16 @@ OPENROUTER_API_KEY=sk-or-...
 
 Add that line to the same `.env`.
 
+## 3b. The Jev caller (one command)
+
+The app talks to Jev through the claude-x-jev skill's `jev.py`. Install it once:
+
+```bash
+npx claude-x-jev install --with-commands
+```
+
+That puts `jev.py` at `~/.claude/skills/claude-x-jev/scripts/jev.py`, which is where the app looks. If you keep it somewhere else, point `local.json` at it (`"jev_py": "/path/to/jev.py"`).
+
 ## 4. Tell it who you are
 
 ```bash
@@ -79,6 +89,11 @@ The app opens at http://127.0.0.1:4317. Under "Where to look" pick YouTube only,
 - Jev errors: the OpenRouter key has no credit, or the key is wrong. Check https://openrouter.ai/credits.
 - A channel came back with 0 pieces: the handle is wrong, or the channel has no uploads in the last 80 days.
 - Port already in use: another copy is running. `lsof -ti:4317 | xargs kill` and start again.
+
+## Optional extras (free, install yourself)
+
+- Transcribe and Watch on saved posts need three public tools: `brew install yt-dlp ffmpeg` (or your OS equivalent) and `pip install openai-whisper`. Settings shows which ones are missing.
+- Ask AI, "why it worked" breakdowns, Topics and Scripts need Claude Code on your PATH (`claude --version`). Without it the hunt still runs on the base Jev questions, without tuning.
 
 ## What the full guide adds (CC Strategic AI+)
 

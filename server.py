@@ -468,6 +468,8 @@ def app_state():
             "claude": bool(shutil.which("claude")), "jev_skill": hunt.JEV_PY.is_file(),
             "jev_key": bool(openrouter_key()), "jev_credits": jev_credits(),
             "youtube_key": env_has("YOUTUBE_DATA_API_KEY"), "apify_key": env_has("APIFY_API_TOKEN"),
+            # Saved-post analysis tools; the hunt itself needs none of them
+            "ytdlp": bool(shutil.which("yt-dlp")), "ffmpeg": bool(shutil.which("ffmpeg")), "whisper": bool(shutil.which("whisper")),
         },
     }
 
