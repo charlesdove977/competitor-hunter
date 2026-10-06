@@ -809,24 +809,9 @@ def cmd_rank(args):
     for i, p in enumerate(organic, 1):
         p["rank"] = i
 
-    # 4. Instagram CDN thumbnails expire and refuse hotlinking: keep local copies of the ones we show.
-    thumbs = run / "thumbs"
-    thumbs.mkdir(exist_ok=True)
-
-    def keep_thumb(p):
-        target = thumbs / (p["id"] + ".jpg")
-        try:
-            if not target.exists():
-                req = urllib.request.Request(p["thumb"], headers={"User-Agent": UA})
-                target.write_bytes(urllib.request.urlopen(req, timeout=10).read())
-            return "/runs/%s/thumbs/%s.jpg" % (run.name, p["id"])
-        except Exception:
-            return None
-
+    # 4. Instagram CDN thumbnails expire and refuse hotlinking: keep a local copy of every one (filters can surface any rank).
     instagram = [p for p in organic if p["platform"] == "instagram"]
-    shown = [p for p in instagram if p["rank"] <= 60 and p.get("thumb")]
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        local = dict(zip((p["id"] for p in shown), pool.map(keep_thumb, shown)))
+    local = keep_thumbs(run, instagram)
     for p in instagram:
         p["thumb"] = local.get(p["id"])
 
@@ -879,6 +864,44 @@ def cmd_rank(args):
          % (len(organic), len(paid), organic[0]["title"][:80] if organic else "none"), organic=len(organic), paid=len(paid))
 
 
+def keep_thumbs(run, pieces, workers=16):
+    """Download each piece's CDN thumbnail into runs/<id>/thumbs/. Returns {id: local url or None}."""
+    thumbs = run / "thumbs"
+    thumbs.mkdir(exist_ok=True)
+
+    def keep(p):
+        target = thumbs / (p["id"] + ".jpg")
+        try:
+            if not target.exists():
+                req = urllib.request.Request(p["thumb"], headers={"User-Agent": UA})
+                target.write_bytes(urllib.request.urlopen(req, timeout=10).read())
+            return "/runs/%s/thumbs/%s.jpg" % (run.name, p["id"])
+        except Exception:
+            return None
+
+    todo = [p for p in pieces if str(p.get("thumb") or "").startswith("http")]
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        return dict(zip((p["id"] for p in todo), pool.map(keep, todo)))
+
+
+def cmd_thumbs(args):
+    """Backfill missing Instagram thumbnails on a finished run from the CDN urls still in items.json."""
+    run = Path(args.run)
+    result = read_json(run / "result.json")
+    src = {p["id"]: p.get("thumb") for p in read_json(run / "items.json")}
+    missing = [p for p in result["pieces"] if p["platform"] == "instagram"
+               and not (p.get("thumb") and (APP / p["thumb"].lstrip("/")).exists())]
+    local = keep_thumbs(run, [{"id": p["id"], "thumb": src.get(p["id"])} for p in missing])
+    got = 0
+    for p in missing:
+        if local.get(p["id"]):
+            p["thumb"] = local[p["id"]]
+            got += 1
+    write_json(run / "result.json", result)
+    emit(run, "rank", "log", "Thumbnails: %d of %d missing Instagram thumbnails recovered" % (got, len(missing)))
+    print("thumbs: %d missing, %d recovered, %d gone from the CDN" % (len(missing), got, len(missing) - got))
+
+
 def cmd_all(args):
     args.resume = True
     cmd_scrape(args)
@@ -891,7 +914,7 @@ def main():
     ap = argparse.ArgumentParser(prog="hunt.py", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name, fn in (("scrape", cmd_scrape), ("pilot", cmd_pilot), ("lint", cmd_lint), ("judge", cmd_judge),
-                     ("rank", cmd_rank), ("all", cmd_all)):
+                     ("rank", cmd_rank), ("thumbs", cmd_thumbs), ("all", cmd_all)):
         p = sub.add_parser(name)
         p.add_argument("--run", required=True, help="run folder inside apps/competitor-hunter/runs/")
         p.add_argument("--resume", action="store_true", help="skip the stage when its output already exists")

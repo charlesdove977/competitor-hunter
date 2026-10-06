@@ -84,6 +84,8 @@ const platTag = (p) => (p === 'youtube' ? 'YT' : 'IG');
 const words = (s) => String(s).replace(/_/g, ' ');
 const safeLink = (u) => (/^https:\/\/(www\.)?(youtube\.com|instagram\.com)\//.test(u || '') ? u : null);
 const safeThumb = (u) => (u && (u.startsWith('https://i.ytimg.com/') || u.startsWith('/runs/')) ? u : null);
+const blankThumb = (p) => h('span', { class: 'blank' },
+  h('b', { text: ((p.competitor || p.handle || '?').split('|')[0].trim()[0] || '?').toUpperCase() }), h('small', { text: p.format }));
 const duration = (s) => (s >= 60 ? `${Math.floor(s / 60)}m ${String(Math.round(s % 60)).padStart(2, '0')}s` : `${Math.round(s)}s`);
 
 async function getJSON(url, options) {
@@ -530,13 +532,13 @@ function renderLadders(r) {
 function targetCard(p, i) {
   const link = safeLink(p.url), thumb = safeThumb(p.thumb), j = p.jev;
   const big = p.platform === 'youtube' && thumb ? thumb.replace('mqdefault', 'maxresdefault') : thumb;
-  const img = thumb ? h('img', { src: big, alt: '', loading: 'lazy', onerror: (e) => { if (e.target.src !== new URL(thumb, location).href) e.target.src = thumb; else e.target.remove(); } }) : null;
+  const img = thumb ? h('img', { src: big, alt: '', loading: 'lazy', onerror: (e) => { if (e.target.src !== new URL(thumb, location).href) e.target.src = thumb; else e.target.replaceWith(blankThumb(p)); } }) : null;
   const stat = (label, value) => h('div', {}, h('dt', { text: label }), h('dd', { text: value }));
   const meter = (label, value) => h('div', { class: 'meter' }, h('span', { text: label }),
     h('i', {}, h('b', { vars: { '--w': Math.round(value * 100) } })), h('span', { text: String(Math.round(value * 100)) }));
   return h('article', { class: 'target' + (i === 0 ? ' lead' : ''), vars: { '--i': i % PAGE } },
     h('a', { class: 'thumb', href: link, target: '_blank', rel: 'noopener', 'aria-label': `Open: ${p.title}` },
-      h('span', { class: 'rank-no', text: String(p.rank).padStart(2, '0') }), img || h('span', { class: 'blank', text: p.format })),
+      h('span', { class: 'rank-no', text: String(p.rank).padStart(2, '0') }), img || blankThumb(p)),
     h('div', { class: 'body' },
       h('div', { class: 'meta' }, h('span', { class: 'who', text: p.competitor.split('|')[0].trim() }),
         h('span', { text: `${platTag(p.platform)} ${p.format}` }), h('span', { text: p.age_days === 0 ? 'today' : `${p.age_days}d ago` }),

@@ -30,6 +30,9 @@ async function getJSON(url, options) {
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data;
 }
+const blankThumb = (p) => h('span', { class: 'blank' },
+  h('b', { text: ((p.competitor || p.handle || '?').split('|')[0].trim()[0] || '?').toUpperCase() }), h('small', { text: p.format }));
+
 function mdNodes(text) {
   const out = [];
   let list = null;
@@ -92,7 +95,7 @@ function postCard(p, i) {
   const meter = (label, value) => h('div', { class: 'meter' }, h('span', { text: label }), h('i', {}, h('b', { vars: { '--w': Math.round((value || 0) * 100) } })), h('span', { text: String(Math.round((value || 0) * 100)) }));
   return h('article', { class: 'target' + (i === 0 ? ' lead' : ''), vars: { '--i': i % PAGE } },
     h('a', { class: 'thumb', href: link, target: '_blank', rel: 'noopener' }, h('span', { class: 'rank-no', text: String(p.rank).padStart(2, '0') }),
-      thumb ? h('img', { src: big, alt: '', loading: 'lazy', onerror: (e) => { if (e.target.src !== new URL(thumb, location).href) e.target.src = thumb; else e.target.remove(); } }) : h('span', { class: 'blank', text: p.format })),
+      thumb ? h('img', { src: big, alt: '', loading: 'lazy', onerror: (e) => { if (e.target.src !== new URL(thumb, location).href) e.target.src = thumb; else e.target.replaceWith(blankThumb(p)); } }) : blankThumb(p)),
     h('div', { class: 'body' },
       h('div', { class: 'meta' }, h('span', { class: 'who', text: p.platform === 'youtube' ? 'YouTube' : 'Instagram' }), h('span', { text: p.format }), h('span', { text: `${p.age_days}d ago` }),
         h('button', { class: 'save-btn', type: 'button', text: 'Save', onclick: async (e) => {
