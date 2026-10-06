@@ -1,5 +1,7 @@
 # Competitor Hunter
 
+![Competitor Hunter: Claude x Jev, the posts most likely to work for you](docs/hero-competitor-hunter.png)
+
 A local web app for creators. One click collects every post your competitors made in the last 80 days, has **Jev** (TypeSafe's decision model) judge each one, and shows you the ones most likely to work for your audience. **Claude Code** runs the hunt headlessly and tunes Jev's questions on a pilot batch. Save posts, transcribe them, watch them frame by frame, ask AI about them, and plan your next piece from your own analytics on the **My Studio** page.
 
 No framework, no build step, no database. Python 3.10+ standard library, plain HTML/JS, your own API keys. Everything stays on your machine except the scrapes and the model calls.
