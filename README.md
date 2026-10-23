@@ -8,6 +8,8 @@ No framework, no build step, no database. Python 3.10+ standard library, plain H
 
 ![Light and dark, Apple-style, one blue accent](docs/screenshot-placeholder.txt)
 
+**Want your competitor research running on autopilot?** Join [CC Strategic AI +](https://www.skool.com/cc-strategic-ai-plus/about): my 27-day Claude Code mastery program with a 1-click install setup file, and you work with us to land your first AI client in 90 days, or your money back.
+
 Step-by-step guide and setup walkthrough: [Competitor Hunter guide on charlieautomates.com](https://charlieautomates.com/free-resources/#competitor-hunter)
 
 ## What you get
