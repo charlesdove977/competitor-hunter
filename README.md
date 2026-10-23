@@ -8,6 +8,8 @@ No framework, no build step, no database. Python 3.10+ standard library, plain H
 
 ![Light and dark, Apple-style, one blue accent](docs/screenshot-placeholder.txt)
 
+Step-by-step guide and setup walkthrough: [Competitor Hunter guide on charlieautomates.com](https://charlieautomates.com/free-resources/#competitor-hunter)
+
 ## What you get
 
 | Page | What it does |
